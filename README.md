@@ -70,7 +70,9 @@ hardware_monitor/
 
 1. **Clonar o ubicarse en la carpeta del proyecto:**
    ```powershell
-   cd C:\Users\Fiamma\.gemini\antigravity\scratch\hardware_monitor
+   # 1. Clonar el repositorio y entrar a la carpeta del proyecto:
+   git clone https://github.com/benvegnufiamma-a11y/Monitoreo_de_Hardware.git
+   cd Monitoreo_de_Hardware
    ```
 
 2. **Crear y activar el entorno virtual:**
