@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ app_name }}</title>
+
+  <!-- Tipografía elegante y minimalista -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Estilos del dashboard -->
+  <link rel="stylesheet" href="/static/css/styles.css">
+
+  <!-- Librería de gráficos ligeros Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="app-container">
+    
+    <!-- ENCABEZADO -->
+    <header class="app-header">
+      <div class="brand-wrapper">
+        <h1 class="brand-title">{{ app_name }}</h1>
+      </div>
+      <div class="connection-status connected" id="connectionPill">
+        <span class="status-dot"></span>
+        <span id="connectionText">Monitoreo en vivo activo</span>
+      </div>
+    </header>
+
+    <!-- PANEL DESTACADO: INFORMACIÓN DEL SISTEMA (3 COLUMNAS) -->
+    <section class="system-overview-card" aria-label="Especificaciones del sistema">
+      <div class="overview-title">
+        <span>⚙ Especificaciones del Dispositivo</span>
+      </div>
+      <div class="system-specs-grid">
+        <!-- 1. Procesador -->
+        <div class="spec-item">
+          <span class="spec-label">Procesador</span>
+          <span class="spec-value" id="specProcessor">Cargando...</span>
+          <span class="spec-extra" id="specCoresThreads">- núcleos físicos • - hilos lógicos</span>
+        </div>
+
+        <!-- 2. Memoria RAM -->
+        <div class="spec-item">
+          <span class="spec-label">Memoria Instalada</span>
+          <span class="spec-value" id="specRamTotal">- GB</span>
+          <span class="spec-extra" id="specRamSpeed">- MT/s</span>
+        </div>
+
+        <!-- 3. Sistema Operativo -->
+        <div class="spec-item">
+          <span class="spec-label">Sistema Operativo</span>
+          <span class="spec-value" id="specOsName">Cargando...</span>
+          <span class="spec-extra" id="specOsVersion">-</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- CONTENEDOR DE ALERTAS Y TOASTS FLOTANTES -->
+    <div class="alerts-banner-container" id="alertsContainer" aria-live="polite"></div>
+
+    <!-- PANEL DE CONTROL DE GRABACIÓN Y FILTROS -->
+    <section class="control-card" aria-label="Controles de sesión">
+      <div class="control-main-row">
+        
+        <!-- Botón de Grabación de Sesión -->
+        <div class="button-group">
+          <button type="button" id="btnRecord" class="btn btn-record" title="Iniciar o detener grabación de sesión para exportar">
+            <span id="recordIcon">⏺</span> <span id="recordBtnText">Iniciar Grabación</span>
+          </button>
+        </div>
+
+        <!-- Selector de Métricas Visibles -->
+        <div class="metrics-selector">
+          <span class="selector-label">Métricas Visibles:</span>
+          <label class="custom-checkbox">
+            <input type="checkbox" id="checkCpu" checked> CPU
+          </label>
+          <label class="custom-checkbox">
+            <input type="checkbox" id="checkRam" checked> Memoria RAM
+          </label>
+          <label class="custom-checkbox">
+            <input type="checkbox" id="checkDisk" checked> Disco (I/O)
+          </label>
+          <label class="custom-checkbox">
+            <input type="checkbox" id="checkNetwork" checked> Red (Tráfico)
+          </label>
+        </div>
+
+        <!-- Botones de Exportación de la Sesión Grabada -->
+        <div class="button-group">
+          <button type="button" id="btnExportCsv" class="btn btn-outline" disabled title="Descargar sesión grabada en CSV">
+            <span>↓</span> CSV
+          </button>
+          <button type="button" id="btnExportJson" class="btn btn-outline" disabled title="Descargar sesión grabada en JSON">
+            <span>↓</span> JSON
+          </button>
+        </div>
+      </div>
+
+      <!-- Configuración de Umbrales de Alerta -->
+      <div class="thresholds-wrapper">
+        <span class="selector-label">Umbrales de Alerta en Vivo:</span>
+        <div class="threshold-group">
+          <label for="cpuWarning">CPU Aviso:</label>
+          <input type="number" id="cpuWarning" class="threshold-input" value="75" min="1" max="100">%
+        </div>
+        <div class="threshold-group">
+          <label for="cpuCritical">CPU Crítico:</label>
+          <input type="number" id="cpuCritical" class="threshold-input" value="90" min="1" max="100">%
+        </div>
+        <div class="threshold-group">
+          <label for="ramWarning">RAM Aviso:</label>
+          <input type="number" id="ramWarning" class="threshold-input" value="80" min="1" max="100">%
+        </div>
+        <div class="threshold-group">
+          <label for="ramCritical">RAM Crítico:</label>
+          <input type="number" id="ramCritical" class="threshold-input" value="92" min="1" max="100">%
+        </div>
+      </div>
+    </section>
+
+    <!-- TARJETAS DE RESUMEN (ESTILO ADMINISTRADOR DE TAREAS) -->
+    <section class="metrics-grid" aria-label="Resumen de hardware">
+      <!-- Tarjeta CPU -->
+      <article class="metric-summary-card active-tab" id="card-cpu">
+        <div class="card-top">
+          <span class="card-title">Procesador (CPU)</span>
+          <span class="metric-badge">En vivo</span>
+        </div>
+        <div class="metric-value-display">
+          <span class="metric-large-num" id="cpuValue">0.0</span>
+          <span class="metric-unit">%</span>
+        </div>
+        <div class="card-subtext">
+          <span>Estado general</span>
+          <span id="cpuSubtext">0 hilos</span>
+        </div>
+      </article>
+
+      <!-- Tarjeta RAM -->
+      <article class="metric-summary-card" id="card-ram">
+        <div class="card-top">
+          <span class="card-title">Memoria (RAM)</span>
+          <span class="metric-badge">Física</span>
+        </div>
+        <div class="metric-value-display">
+          <span class="metric-large-num" id="ramValue">0.0</span>
+          <span class="metric-unit">%</span>
+        </div>
+        <div class="card-subtext">
+          <span>En uso</span>
+          <span id="ramSubtext">0 / 0 GB</span>
+        </div>
+      </article>
+
+      <!-- Tarjeta Disco -->
+      <article class="metric-summary-card" id="card-disk">
+        <div class="card-top">
+          <span class="card-title">Almacenamiento</span>
+          <span class="metric-badge">Principal</span>
+        </div>
+        <div class="metric-value-display">
+          <span class="metric-large-num" id="diskValue">0.0</span>
+          <span class="metric-unit">%</span>
+        </div>
+        <div class="card-subtext">
+          <span>Velocidad I/O</span>
+          <span id="diskSubtext">L: 0 MB/s • E: 0 MB/s</span>
+        </div>
+      </article>
+
+      <!-- Tarjeta Red -->
+      <article class="metric-summary-card" id="card-network">
+        <div class="card-top">
+          <span class="card-title">Red Ethernet/Wi-Fi</span>
+          <span class="metric-badge">Rendimiento</span>
+        </div>
+        <div class="metric-value-display">
+          <span class="metric-large-num" id="networkValue">0</span>
+          <span class="metric-unit">KB/s</span>
+        </div>
+        <div class="card-subtext">
+          <span>Tráfico</span>
+          <span id="networkSubtext">↓ 0 KB/s • ↑ 0 KB/s</span>
+        </div>
+      </article>
+    </section>
+
+    <!-- PANELES DE GRÁFICOS TEMPORALES DESLIZANTES (60 SEGUNDOS) -->
+    <section class="charts-container" aria-label="Gráficos de rendimiento en tiempo real">
+      
+      <!-- Panel Gráfico CPU con selector de hilos -->
+      <div class="chart-panel" id="panel-cpu">
+        <div class="chart-header">
+          <h2 class="chart-title">Uso de Procesador</h2>
+          <div class="chart-header-controls">
+            <label for="cpuCoreSelector" class="selector-label">Ver:</label>
+            <select id="cpuCoreSelector" class="threshold-input selector-dropdown" title="Seleccionar vista de hilos">
+              <option value="total">Promedio Total</option>
+              <option value="all">Todos los hilos superpuestos</option>
+            </select>
+            <span class="chart-legend-badge">Muestreo: 1s</span>
+          </div>
+        </div>
+        
+        <div class="canvas-wrapper">
+          <canvas id="cpuChart"></canvas>
+        </div>
+
+        <!-- Panel de balance y desglose individual por hilo -->
+        <div class="cores-monitor-panel" id="coresMonitorPanel">
+          <div class="cores-monitor-header">
+            <span>Balance de carga por hilo</span>
+            <span id="coresBalanceSummary">Detectando hilos...</span>
+          </div>
+          <div class="cores-grid" id="coresGrid">
+            <!-- Inyección dinámica de barras de cada hilo -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel Gráfico RAM -->
+      <div class="chart-panel" id="panel-ram">
+        <div class="chart-header">
+          <h2 class="chart-title">Uso de Memoria RAM (% últimos 60 segundos)</h2>
+          <span class="chart-legend-badge">Muestreo: 1s</span>
+        </div>
+        <div class="canvas-wrapper">
+          <canvas id="ramChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Panel Gráfico Disco -->
+      <div class="chart-panel" id="panel-disk">
+        <div class="chart-header">
+          <h2 class="chart-title">Actividad de Disco (MB/s Lectura / Escritura)</h2>
+          <span class="chart-legend-badge">Verde: Lectura • Borravino: Escritura</span>
+        </div>
+        <div class="canvas-wrapper">
+          <canvas id="diskChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Panel Gráfico Red -->
+      <div class="chart-panel" id="panel-network">
+        <div class="chart-header">
+          <h2 class="chart-title">Tráfico de Red (KB/s Bajada / Subida)</h2>
+          <span class="chart-legend-badge">Verde: Bajada • Marrón: Subida</span>
+        </div>
+        <div class="canvas-wrapper">
+          <canvas id="networkChart"></canvas>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- PIE DE PÁGINA Y ESTADO DE SESIÓN -->
+    <footer class="session-summary-footer">
+      <span id="sessionStatsText">Monitoreo 100% en vivo activo • Grabación en espera.</span>
+      <span>Actualización en vivo cada 1 segundo • Ventana de 60 segundos</span>
+    </footer>
+
+  </div>
+
+  <!-- Orquestador Frontend modular -->
+  <script type="module" src="/static/js/app.js"></script>
+</body>
+</html>
